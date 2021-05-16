@@ -1,20 +1,20 @@
 <template>
   <Sticky class="mb-4">
     <div
-      v-if="config.env === 'develop'"
+      v-if="env === 'develop'"
       class="p-3 text-center bg-blue"
-      style="color: white; font-size: 20px;"
+      style="color: white; font-size: 20px"
     >
-      This is the demo site, give it a try!
+      {{ $t('demoSite') }}
     </div>
     <nav id="topnav" class="border-bottom width-full bg-black">
       <Container>
-        <div class="d-flex flex-items-center" style="height: 78px;">
+        <div class="d-flex flex-items-center" style="height: 78px">
           <div class="flex-auto d-flex flex-items-center">
             <router-link
               :to="{ name: 'home' }"
               class="d-inline-block d-flex flex-items-center"
-              style="font-size: 24px; padding-top: 4px;"
+              style="font-size: 24px; padding-top: 4px"
             >
               <span
                 :class="space && 'hide-sm'"
@@ -27,7 +27,7 @@
               v-if="space"
               :to="{ name: domain ? 'home' : 'proposals' }"
               class="d-inline-block d-flex flex-items-center"
-              style="font-size: 24px; padding-top: 4px;"
+              style="font-size: 24px; padding-top: 4px"
             >
               <Token :space="space.key" symbolIndex="space" size="28" />
               <span class="ml-2" v-text="space.name" />
@@ -36,15 +36,15 @@
           <div :key="web3.account">
             <template v-if="$auth.isAuthenticated.value">
               <UiButton
-                @click="modalOpen = true"
+                @click="modalAccountOpen = true"
                 class="button-outline"
                 :loading="app.authLoading"
               >
-                <Avatar
-                  :profile="web3.profile"
+                <UiAvatar
+                  :imgsrc="_ipfsUrl(web3.profile?.image)"
                   :address="web3.account"
                   size="16"
-                  class="mr-0 mr-sm-2 mr-md-2 mr-lg-2 mr-xl-2 ml-n1"
+                  class="mr-n1 mr-sm-2 mr-md-2 mr-lg-2 mr-xl-2 ml-n1"
                 />
                 <span
                   v-if="web3.profile?.name || web3.profile?.ens"
@@ -56,10 +56,10 @@
             </template>
             <UiButton
               v-if="!$auth.isAuthenticated.value"
-              @click="modalOpen = true"
+              @click="modalAccountOpen = true"
               :loading="loading || app.authLoading"
             >
-              <span class="hide-sm" v-text="'Connect wallet'" />
+              <span class="hide-sm" v-text="$t('connectWallet')" />
               <Icon
                 name="login"
                 size="20"
@@ -75,24 +75,37 @@
     </nav>
     <teleport to="#modal">
       <ModalAccount
-        :open="modalOpen"
-        @close="modalOpen = false"
+        :open="modalAccountOpen"
+        @close="modalAccountOpen = false"
         @login="handleLogin"
       />
-      <ModalAbout :open="modalAboutOpen" @close="modalAboutOpen = false" />
+      <ModalAbout
+        :open="modalAboutOpen"
+        @close="modalAboutOpen = false"
+        @openLang="modalLangOpen = true"
+      />
+      <ModalSelectLanguage
+        :open="modalLangOpen"
+        @close="modalLangOpen = false"
+      />
     </teleport>
   </Sticky>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
+import { useModal } from '@/composables/useModal';
 
 export default {
+  setup() {
+    const { modalAccountOpen } = useModal();
+    return { modalAccountOpen };
+  },
   data() {
     return {
       loading: false,
-      modalOpen: false,
-      modalAboutOpen: false
+      modalAboutOpen: false,
+      modalLangOpen: false
     };
   },
   computed: {
@@ -115,7 +128,7 @@ export default {
       document.title = this.space.name ? this.space.name : 'Snapshot';
     },
     async handleLogin(connector) {
-      this.modalOpen = false;
+      this.modalAccountOpen = false;
       this.loading = true;
       await this.login(connector);
       this.loading = false;

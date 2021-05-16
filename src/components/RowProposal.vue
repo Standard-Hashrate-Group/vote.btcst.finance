@@ -12,17 +12,14 @@
     </div>
     <div>
       <span v-text="`#${i.slice(0, 7)}`" />
-      By {{ _shorten(proposal.address) }}
-      <Badges :address="proposal.address" :space="space" />
-      <span
-        v-if="proposal.score"
-        v-text="`${_n(proposal.score)} ${space.symbol}`"
-        class="ml-1"
-      />
-      start
-      <span v-text="$d(proposal.msg.payload.start * 1e3)" />
-      end
-      <span v-text="$d(proposal.msg.payload.end * 1e3)" />
+      {{ $tc('createdBy', [_shorten(proposal.address)]) }}
+      <Badges :address="proposal.address" :members="space.members" />
+      {{
+        $tc(period, [
+          _ms(proposal.msg.payload.start),
+          _ms(proposal.msg.payload.end)
+        ])
+      }}
     </div>
   </router-link>
 </template>
@@ -42,6 +39,13 @@ export default {
         this.verified.length > 0 &&
         this.verified.includes(this.proposal.address)
       );
+    },
+    period() {
+      const ts = (Date.now() / 1e3).toFixed();
+      const { start, end } = this.proposal.msg.payload;
+      if (ts > end) return 'endedAgo';
+      if (ts > start) return 'endIn';
+      return 'startIn';
     }
   }
 };

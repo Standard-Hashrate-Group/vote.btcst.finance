@@ -1,13 +1,15 @@
 <template>
   <UiModal :open="open" @close="$emit('close')">
     <template v-slot:header>
-      <h3 v-if="!web3.account || step === 'connect'">Connect wallet</h3>
-      <h3 v-else>Account</h3>
+      <h3 v-if="!web3.account || step === 'connect'">
+        {{ $t('connectWallet') }}
+      </h3>
+      <h3 v-else>{{ $t('account') }}</h3>
     </template>
     <div v-if="!web3.account || step === 'connect'">
       <div class="m-4 mb-5">
         <a
-          v-for="(connector, id, i) in config.connectors"
+          v-for="(connector, id, i) in connectors"
           :key="i"
           @click="$emit('login', connector.id)"
           target="_blank"
@@ -48,8 +50,8 @@
           class="mb-2 d-block"
         >
           <UiButton class="button-outline width-full">
-            <Avatar
-              :profile="web3.profile"
+            <UiAvatar
+              :imgsrc="_ipfsUrl(web3.profile?.image)"
               :address="web3.account"
               size="16"
               class="mr-2 ml-n1"
@@ -67,7 +69,7 @@
           class="mb-2 d-block"
         >
           <UiButton class="button-outline width-full">
-            Edit profile on 3Box
+            {{ $t('edit3box') }}
             <Icon name="external-link" class="ml-1" />
           </UiButton>
         </a>
@@ -78,7 +80,7 @@
           class="mb-2 d-block"
         >
           <UiButton class="button-outline width-full">
-            Create profile on 3Box
+            {{ $t('create3box') }}
             <Icon name="external-link" class="ml-1" />
           </UiButton>
         </a>
@@ -86,13 +88,13 @@
           @click="step = 'connect'"
           class="button-outline width-full mb-2"
         >
-          Connect wallet
+          {{ $t('connectWallet') }}
         </UiButton>
         <UiButton
           @click="handleLogout"
           class="button-outline width-full text-red mb-2"
         >
-          Log out
+          {{ $t('logout') }}
         </UiButton>
       </div>
     </div>
@@ -102,12 +104,14 @@
 <script>
 import { mapActions } from 'vuex';
 import { getInjected } from '@snapshot-labs/lock/src/utils';
+import connectors from '@/helpers/connectors.json';
 
 export default {
   props: ['open'],
   emits: ['login', 'close'],
   data() {
     return {
+      connectors,
       step: null,
       path:
         'https://raw.githubusercontent.com/snapshot-labs/lock/master/connectors/assets'

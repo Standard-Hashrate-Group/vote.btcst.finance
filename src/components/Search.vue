@@ -1,5 +1,8 @@
 <template>
-  <div class="d-flex flex-items-center">
+  <div
+    class="d-flex flex-items-center"
+    :class="{ 'bg-color border-bottom py-3 px-4': modal }"
+  >
     <Icon name="search" size="22" class="mb-1 mr-2 text-gray" />
     <input
       :value="modelValue"
@@ -18,16 +21,24 @@
 
 <script>
 export default {
-  props: ['modelValue', 'placeholder'],
+  props: ['modelValue', 'placeholder', 'modal'],
   emits: ['update:modelValue'],
   methods: {
     handleInput(e) {
       const input = e.target.value;
-      this.$router.push({ query: input ? { q: input } : {} });
+      if (!this.modal) {
+        const { query } = this.$router.currentRoute.value;
+        this.$router.push({
+          query: input ? { ...query, q: input } : { ...query, q: undefined }
+        });
+      }
       this.$emit('update:modelValue', input);
     },
     clearInput() {
-      this.$router.push({});
+      if (!this.modal) {
+        const { query } = this.$router.currentRoute.value;
+        this.$router.push({ query: { ...query, q: undefined } });
+      }
       this.$emit('update:modelValue', '');
     }
   }

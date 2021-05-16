@@ -1,9 +1,10 @@
 <template>
   <Block
-    v-if="Object.keys(votes).length > 0"
-    title="Votes"
+    v-if="isZero()"
+    :title="$t('votes')"
     :counter="Object.keys(votes).length"
     :slim="true"
+    :loading="!loaded"
   >
     <div
       v-for="(vote, address, i) in visibleVotes"
@@ -19,10 +20,7 @@
       />
       <div
         v-text="
-          _shorten(
-            proposal.msg.payload.choices[vote.msg.payload.choice - 1],
-            'choice'
-          )
+          _shorten(proposal.choices[vote.msg.payload.choice - 1], 'choice')
         "
         class="flex-auto text-center text-white"
       />
@@ -52,7 +50,7 @@
       @click="showAllVotes = true"
       class="px-4 py-3 border-top text-center d-block bg-gray-dark rounded-bottom-0 rounded-md-bottom-2"
     >
-      See more
+      {{ $t('seeMore') }}
     </a>
     <teleport to="#modal">
       <ModalReceipt
@@ -67,7 +65,7 @@
 
 <script>
 export default {
-  props: ['space', 'proposal', 'votes'],
+  props: ['space', 'proposal', 'votes', 'loaded'],
   data() {
     return {
       showAllVotes: false,
@@ -89,6 +87,11 @@ export default {
     }
   },
   methods: {
+    // Hide only after loading if zero voters
+    isZero() {
+      if (!this.loaded) return true;
+      if (Object.keys(this.votes).length > 0) return true;
+    },
     openReceiptModal(vote) {
       this.authorIpfsHash = vote.authorIpfsHash;
       this.relayerIpfsHash = vote.relayerIpfsHash;

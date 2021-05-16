@@ -1,4 +1,6 @@
-import { subgraphRequest } from '@snapshot-labs/snapshot.js/src/utils';
+import getProvider from '@snapshot-labs/snapshot.js/src/utils/provider';
+import { subgraphRequest, call } from '@snapshot-labs/snapshot.js/src/utils';
+import namehash from 'eth-ens-namehash';
 
 function get3BoxProfiles(addresses) {
   return new Promise((resolove, reject) => {
@@ -25,37 +27,41 @@ function get3BoxProfiles(addresses) {
   });
 }
 
+function ensReverseRecordRequest(addresses) {
+  const network = '1';
+  const provider = getProvider(network);
+  const abi = [
+    {
+      inputs: [
+        { internalType: 'address[]', name: 'addresses', type: 'address[]' }
+      ],
+      name: 'getNames',
+      outputs: [{ internalType: 'string[]', name: 'r', type: 'string[]' }],
+      stateMutability: 'view',
+      type: 'function'
+    }
+  ];
+  return call(
+    provider,
+    abi,
+    ['0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C', 'getNames', [addresses]],
+    { blockTag: 'latest' }
+  );
+}
+
 function lookupAddresses(addresses) {
   return new Promise((resolove, reject) => {
-    subgraphRequest('https://api.thegraph.com/subgraphs/name/ensdomains/ens', {
-      accounts: {
-        __args: {
-          first: 1000,
-          where: {
-            id_in: addresses.map(addresses => addresses.toLowerCase())
-          }
-        },
-        id: true,
-        registrations: {
-          __args: {
-            orderBy: 'registrationDate',
-            first: 1
-          },
-          domain: {
-            name: true,
-            labelName: true
-          }
-        }
-      }
-    })
-      .then(({ accounts }) => {
-        const ensNames = {};
-        accounts.forEach(profile => {
-          ensNames[profile.id.toLowerCase()] =
-            (profile?.registrations?.[0]?.domain?.labelName &&
-              profile?.registrations?.[0]?.domain?.name) ||
-            '';
-        });
+    ensReverseRecordRequest(addresses)
+      .then(reverseRecords => {
+        const validNames = reverseRecords.map(n =>
+          namehash.normalize(n) === n ? n : ''
+        );
+        const ensNames = Object.fromEntries(
+          addresses.map((address, index) => {
+            return [address.toLowerCase(), validNames[index]];
+          })
+        );
+
         resolove(ensNames);
       })
       .catch(error => {
@@ -65,6 +71,7 @@ function lookupAddresses(addresses) {
 }
 
 export async function getProfiles(addresses) {
+  addresses = addresses.slice(0, 1000);
   let ensNames: any = {};
   let _3BoxProfiles: any = {};
   try {

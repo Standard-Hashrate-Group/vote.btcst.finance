@@ -13,38 +13,42 @@
       <div class="px-4 px-md-0">
         <template v-if="loaded">
           <h1 class="mb-2">
-            {{ payload.name }}
+            {{ proposal.title }}
             <span v-text="`#${id.slice(0, 7)}`" class="text-gray" />
           </h1>
           <div class="mb-4">
-            <State :proposal="proposal" />
+            <UiState :state="proposal.state" />
             <UiDropdown
+              top="2.2rem"
+              right="1.3rem"
               class="float-right"
-              v-if="proposal.address === this.web3.account"
-              @delete="deleteProposal"
-              :items="[{ text: 'Delete proposal', action: 'delete' }]"
+              v-if="isAdmin || isCreator"
+              @select="selectFromDropdown"
+              :items="[{ text: $t('deleteProposal'), action: 'delete' }]"
             >
-              <UiLoading v-if="deleteLoading" />
-              <Icon
-                v-else
-                name="threedots"
-                size="25"
-                class="v-align-text-bottom"
-              />
+              <div class="pr-3">
+                <UiLoading v-if="dropdownLoading" />
+                <Icon
+                  v-else
+                  name="threedots"
+                  size="25"
+                  class="v-align-text-bottom"
+                />
+              </div>
             </UiDropdown>
           </div>
-          <UiMarkdown :body="payload.body" class="mb-6" />
+          <UiMarkdown :body="proposal.body" class="mb-6" />
         </template>
         <PageLoading v-else />
       </div>
       <Block
-        v-if="loaded && ts >= payload.start && ts < payload.end"
+        v-if="loaded && ts >= proposal.start && ts < proposal.end"
         class="mb-4"
-        title="Cast your vote"
+        :title="$t('proposal.castVote')"
       >
         <div class="mb-3">
           <UiButton
-            v-for="(choice, i) in payload.choices"
+            v-for="(choice, i) in proposal.choices"
             :key="i"
             @click="selectedChoice = i + 1"
             class="d-block width-full mb-2"
@@ -52,20 +56,15 @@
           >
             {{ _shorten(choice, 32) }}
             <a
-              v-if="payload.metadata.plugins?.aragon?.[`choice${[i + 1]}`]"
+              v-if="proposal.plugins?.aragon?.[`choice${[i + 1]}`]"
               @click="modalOpen = true"
-              :aria-label="
-                `Target address: ${
-                  payload.metadata.plugins.aragon[`choice${i + 1}`].actions[0]
-                    .to
-                }\nValue: ${
-                  payload.metadata.plugins.aragon[`choice${i + 1}`].actions[0]
-                    .value
-                }\nData: ${
-                  payload.metadata.plugins.aragon[`choice${i + 1}`].actions[0]
-                    .data
-                }`
-              "
+              :aria-label="`Target address: ${
+                proposal.plugins.aragon[`choice${i + 1}`].actions[0].to
+              }\nValue: ${
+                proposal.plugins.aragon[`choice${i + 1}`].actions[0].value
+              }\nData: ${
+                proposal.plugins.aragon[`choice${i + 1}`].actions[0].data
+              }`"
               class="tooltipped tooltipped-n break-word"
             >
               <Icon name="warning" class="v-align-middle ml-1" />
@@ -73,25 +72,26 @@
           </UiButton>
         </div>
         <UiButton
-          :disabled="voteLoading || !selectedChoice || !web3.account"
+          :disabled="voteLoading || app.authLoading || !selectedChoice"
           :loading="voteLoading"
-          @click="modalOpen = true"
+          @click="web3.account ? (modalOpen = true) : (modalAccountOpen = true)"
           class="d-block width-full button--submit"
         >
-          Vote
+          {{ $t('proposal.vote') }}
         </UiButton>
       </Block>
       <BlockVotes
         v-if="loaded"
+        :loaded="loadedResults"
         :space="space"
         :proposal="proposal"
         :votes="votes"
       />
     </template>
     <template #sidebar-right v-if="loaded">
-      <Block title="Information">
+      <Block :title="$t('information')">
         <div class="mb-1">
-          <b>Strategie(s)</b>
+          <b>{{ $t('strategies') }}</b>
           <span
             @click="modalStrategiesOpen = true"
             class="float-right text-white a"
@@ -105,9 +105,9 @@
           </span>
         </div>
         <div class="mb-1">
-          <b>Author</b>
+          <b>{{ $t('author') }}</b>
           <User
-            :address="proposal.address"
+            :address="proposal.author"
             :profile="proposal.profile"
             :space="space"
             class="float-right"
@@ -126,52 +126,71 @@
         </div>
         <div>
           <div class="mb-1">
-            <b>Start date</b>
+            <b>{{ $t('proposal.startDate') }}</b>
             <span
-              :aria-label="_ms(payload.start)"
-              v-text="$d(payload.start * 1e3, 'short')"
+              :aria-label="_ms(proposal.start)"
+              v-text="$d(proposal.start * 1e3, 'short', 'en-US')"
               class="float-right text-white tooltipped tooltipped-n"
             />
           </div>
           <div class="mb-1">
-            <b>End date</b>
+            <b>{{ $t('proposal.endDate') }}</b>
             <span
-              :aria-label="_ms(payload.end)"
-              v-text="$d(payload.end * 1e3, 'short')"
+              :aria-label="_ms(proposal.end)"
+              v-text="$d(proposal.end * 1e3, 'short', 'en-US')"
               class="float-right text-white tooltipped tooltipped-n"
             />
           </div>
           <div class="mb-1">
-            <b>Snapshot</b>
+            <b>{{ $t('snapshot') }}</b>
             <a
-              :href="_explorer(space.network, payload.snapshot, 'block')"
+              :href="_explorer(space.network, proposal.snapshot, 'block')"
               target="_blank"
               class="float-right"
             >
-              {{ _n(payload.snapshot, '0,0') }}
+              {{ _n(proposal.snapshot, '0,0') }}
               <Icon name="external-link" class="ml-1" />
             </a>
           </div>
         </div>
       </Block>
       <BlockResults
+        :loaded="loadedResults"
         :id="id"
         :space="space"
-        :payload="payload"
+        :proposal="proposal"
         :results="results"
         :votes="votes"
       />
-      <BlockActions
-        :id="id"
-        :space="space"
-        :payload="payload"
-        :results="results"
-      />
-      <PluginGnosisCustomBlock
-        v-if="payload.metadata.plugins?.gnosis?.baseTokenAddress"
-        :proposalConfig="payload.metadata.plugins.gnosis"
-        :choices="payload.choices"
-      />
+      <div v-if="loadedResults">
+        <PluginAragonCustomBlock
+          :loaded="loadedResults"
+          :id="id"
+          :space="space"
+          :proposal="proposal"
+          :results="results"
+        />
+        <PluginGnosisCustomBlock
+          v-if="proposal.plugins?.gnosis?.baseTokenAddress"
+          :proposalConfig="proposal.plugins.gnosis"
+          :choices="proposal.choices"
+        />
+        <PluginDaoModuleCustomBlock
+          v-if="proposal.plugins?.daoModule?.txs"
+          :proposalConfig="proposal.plugins.daoModule"
+          :proposalEnd="proposal.end"
+          :porposalId="id"
+          :moduleAddress="space.plugins?.daoModule?.address"
+          :network="space.network"
+        />
+        <PluginQuorumCustomBlock
+          :loaded="loadedResults"
+          v-if="space.plugins?.quorum"
+          :space="space"
+          :proposal="proposal"
+          :results="results"
+        />
+      </div>
     </template>
   </Layout>
   <teleport to="#modal">
@@ -186,7 +205,7 @@
       :selectedChoice="selectedChoice"
       :totalScore="totalScore"
       :scores="scores"
-      :snapshot="payload.snapshot"
+      :snapshot="proposal.snapshot"
     />
     <ModalStrategies
       :open="modalStrategiesOpen"
@@ -199,16 +218,23 @@
 
 <script>
 import { mapActions } from 'vuex';
+import { getProposal, getResults, getPower } from '@/helpers/snapshot';
+import { useModal } from '@/composables/useModal';
 
 export default {
+  setup() {
+    const { modalAccountOpen } = useModal();
+    return { modalAccountOpen };
+  },
   data() {
     return {
       key: this.$route.params.key,
       id: this.$route.params.id,
       loading: false,
       loaded: false,
+      loadedResults: false,
       voteLoading: false,
-      deleteLoading: false,
+      dropdownLoading: false,
       proposal: {},
       votes: {},
       results: [],
@@ -223,44 +249,56 @@ export default {
     space() {
       return this.app.spaces[this.key];
     },
-    payload() {
-      return this.proposal.msg.payload;
-    },
     ts() {
       return (Date.now() / 1e3).toFixed();
     },
     symbols() {
       return this.space.strategies.map(strategy => strategy.params.symbol);
+    },
+    isCreator() {
+      return this.proposal.author === this.web3.account;
+    },
+    isAdmin() {
+      const admins = (this.space.admins || []).map(admin =>
+        admin.toLowerCase()
+      );
+      return admins.includes(this.web3.account?.toLowerCase());
     }
   },
   watch: {
-    'web3.account': async function(val, prev) {
+    'web3.account': async function (val, prev) {
       if (val?.toLowerCase() !== prev) await this.loadPower();
     }
   },
   methods: {
-    ...mapActions(['getProposal', 'getPower', 'send']),
+    ...mapActions(['send']),
     async loadProposal() {
-      const proposalObj = await this.getProposal({
-        space: this.space,
-        id: this.id
-      });
-      this.proposal = proposalObj.proposal;
-      this.votes = proposalObj.votes;
-      this.results = proposalObj.results;
+      const proposalObj = await getProposal(this.space, this.id);
+      const { proposal, votes, blockNumber } = proposalObj;
+      this.proposal = proposal;
+      this.loaded = true;
+      const resultsObj = await getResults(
+        this.space,
+        proposal,
+        votes,
+        blockNumber
+      );
+      this.votes = resultsObj.votes;
+      this.results = resultsObj.results;
+      this.loadedResults = true;
     },
     async loadPower() {
-      if (!this.web3.account || !this.proposal.address) return;
-      const { scores, totalScore } = await this.getPower({
-        space: this.space,
-        address: this.web3.account,
-        snapshot: this.payload.snapshot
-      });
+      if (!this.web3.account || !this.proposal.author) return;
+      const { scores, totalScore } = await getPower(
+        this.space,
+        this.web3.account,
+        this.proposal.snapshot
+      );
       this.totalScore = totalScore;
       this.scores = scores;
     },
     async deleteProposal() {
-      this.deleteLoading = true;
+      this.dropdownLoading = true;
       try {
         if (
           await this.send({
@@ -271,7 +309,7 @@ export default {
             }
           })
         ) {
-          this.deleteLoading = false;
+          this.dropdownLoading = false;
           this.$router.push({
             name: 'proposals'
           });
@@ -279,15 +317,17 @@ export default {
       } catch (e) {
         console.error(e);
       }
-      this.deleteLoading = false;
+      this.dropdownLoading = false;
+    },
+    selectFromDropdown(e) {
+      if (e === 'delete') this.deleteProposal();
     }
   },
   async created() {
     this.loading = true;
     await this.loadProposal();
-    await this.loadPower();
     this.loading = false;
-    this.loaded = true;
+    await this.loadPower();
   }
 };
 </script>

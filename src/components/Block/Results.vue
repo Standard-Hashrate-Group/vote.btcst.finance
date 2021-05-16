@@ -1,5 +1,8 @@
 <template>
-  <Block :title="ts >= payload.end ? 'Results' : 'Current results'">
+  <Block
+    :loading="!loaded"
+    :title="ts >= proposal.end ? $t('results') : $t('currentResults')"
+  >
     <div v-for="choice in choices" :key="choice.i">
       <div class="text-white mb-1">
         <span
@@ -22,13 +25,13 @@
         <span
           class="float-right"
           v-text="
-            $n(
+            _n(
               !results.totalVotesBalances
                 ? 0
                 : ((100 / results.totalVotesBalances) *
                     results.totalBalances[choice.i]) /
                     1e2,
-              'percent'
+              '0.[00]%'
             )
           "
         />
@@ -40,9 +43,9 @@
         class="mb-3"
       />
     </div>
-    <div v-if="ts >= payload.end">
+    <div v-if="ts >= proposal.end">
       <UiButton @click="downloadReport" class="width-full mt-2">
-        Download report
+        {{ $t('downloadReport') }}
       </UiButton>
     </div>
   </Block>
@@ -53,7 +56,7 @@ import * as jsonexport from 'jsonexport/dist';
 import pkg from '@/../package.json';
 
 export default {
-  props: ['id', 'space', 'payload', 'results', 'votes'],
+  props: ['id', 'space', 'proposal', 'results', 'votes', 'loaded'],
   computed: {
     ts() {
       return (Date.now() / 1e3).toFixed();
@@ -62,7 +65,7 @@ export default {
       return this.space.strategies.map(strategy => strategy.params.symbol);
     },
     choices() {
-      return this.payload.choices
+      return this.proposal.choices
         .map((choice, i) => ({ i, choice }))
         .sort(
           (a, b) =>

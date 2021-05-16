@@ -10,19 +10,32 @@
           {{ space.name }}
         </router-link>
       </div>
+      <Block v-if="space.filters?.onlyMembers && !isMember">
+        <Icon name="warning" class="mr-1" />
+        {{ $t('create.onlyMembersWarning') }}
+      </Block>
+      <Block v-else-if="showScoreWarning">
+        <Icon name="warning" class="mr-1" />
+        {{
+          $t('create.minScoreWarning', [
+            _n(space.filters.minScore),
+            space.symbol
+          ])
+        }}
+      </Block>
       <div class="px-4 px-md-0">
         <div class="d-flex flex-column mb-6">
           <input
             v-model="form.name"
             maxlength="128"
             class="h1 mb-2 input"
-            placeholder="Question"
+            :placeholder="$t('create.question')"
             ref="nameForm"
           />
           <TextareaAutosize
             v-model="form.body"
             class="input pt-1"
-            placeholder="What is your proposal?"
+            :placeholder="$t('create.content')"
           />
           <div class="mb-6">
             <p v-if="form.body.length > bodyLimit" class="text-red mt-4">
@@ -30,12 +43,12 @@
             </p>
           </div>
           <div v-if="form.body">
-            <h4 class="mb-4">Preview</h4>
+            <h4 class="mb-4">{{ $t('create.preview') }}</h4>
             <UiMarkdown :body="form.body" />
           </div>
         </div>
       </div>
-      <Block title="Choices">
+      <Block :title="$t('create.choices')">
         <div v-if="choices.length > 0" class="overflow-hidden mb-2">
           <draggable
             v-model="choices"
@@ -43,7 +56,7 @@
             :component-data="{ name: 'list' }"
             item-key="id"
           >
-            <template #item="{element, index}">
+            <template #item="{ element, index }">
               <div class="d-flex mb-2">
                 <UiButton class="d-flex width-full">
                   <span class="mr-4">{{ index + 1 }}</span>
@@ -61,41 +74,41 @@
           </draggable>
         </div>
         <UiButton @click="addChoice(1)" class="d-block width-full">
-          Add choice
+          {{ $t('create.addChoice') }}
         </UiButton>
       </Block>
     </template>
     <template #sidebar-right>
       <Block
-        title="Actions"
+        :title="$t('actions')"
         :icon="
           space.plugins && Object.keys(space.plugins).length > 0
             ? 'stars'
             : undefined
         "
-        @submit="modalPluginsOpen = true"
+        @submit="modalProposalPluginsOpen = true"
       >
         <div class="mb-2">
           <UiButton
             @click="[(modalOpen = true), (selectedDate = 'start')]"
             class="width-full mb-2"
           >
-            <span v-if="!form.start">Select start date</span>
-            <span v-else v-text="$d(form.start * 1e3, 'short')" />
+            <span v-if="!form.start">{{ $t('create.startDate') }}</span>
+            <span v-else v-text="$d(form.start * 1e3, 'short', 'en-US')" />
           </UiButton>
           <UiButton
             @click="[(modalOpen = true), (selectedDate = 'end')]"
             class="width-full mb-2"
           >
-            <span v-if="!form.end">Select end date</span>
-            <span v-else v-text="$d(form.end * 1e3, 'short')" />
+            <span v-if="!form.end">{{ $t('create.endDate') }}</span>
+            <span v-else v-text="$d(form.end * 1e3, 'short', 'en-US')" />
           </UiButton>
           <UiButton class="width-full mb-2">
             <input
               v-model="form.snapshot"
               type="number"
               class="input width-full text-center"
-              placeholder="Snapshot block number"
+              :placeholder="$t('create.snapshotBlock')"
             />
           </UiButton>
         </div>
@@ -105,9 +118,13 @@
           :loading="loading"
           class="d-block width-full button--submit"
         >
-          Publish
+          {{ $t('create.publish') }}
         </UiButton>
       </Block>
+      <PluginDaoModuleCustomBlock
+        v-if="form.metadata.plugins?.daoModule?.txs"
+        :proposalConfig="form.metadata.plugins.daoModule"
+      />
     </template>
   </Layout>
   <teleport to="#modal">
@@ -118,12 +135,12 @@
       @close="modalOpen = false"
       @input="setDate"
     />
-    <ModalPlugins
+    <ModalProposalPlugins
       :space="space"
       :proposal="{ ...form, choices }"
       v-model="form.metadata.plugins"
-      :open="modalPluginsOpen"
-      @close="modalPluginsOpen = false"
+      :open="modalProposalPluginsOpen"
+      @close="modalProposalPluginsOpen = false"
     />
   </teleport>
 </template>
@@ -131,12 +148,10 @@
 <script>
 import { mapActions } from 'vuex';
 import draggable from 'vuedraggable';
-import { ipfsGet } from '@snapshot-labs/snapshot.js/src/utils';
+import { getScores } from '@snapshot-labs/snapshot.js/src/utils';
 import getProvider from '@snapshot-labs/snapshot.js/src/utils/provider';
 import { getBlockNumber } from '@snapshot-labs/snapshot.js/src/utils/web3';
-import gateways from '@snapshot-labs/snapshot.js/src/gateways.json';
-
-const gateway = process.env.VUE_APP_IPFS_GATEWAY || gateways[0];
+import { proposalQuery } from '@/helpers/graphql';
 
 export default {
   components: {
@@ -160,14 +175,41 @@ export default {
         metadata: {}
       },
       modalOpen: false,
-      modalPluginsOpen: false,
+      modalProposalPluginsOpen: false,
       selectedDate: '',
-      counter: 0
+      counter: 0,
+      userScore: null
     };
+  },
+  watch: {
+    'web3.account': function () {
+      if (this.space.filters?.minScore > 0 && !this.isMember)
+        this.getUserScore();
+      else this.userScore = 0;
+    }
   },
   computed: {
     space() {
       return this.app.spaces[this.key];
+    },
+    isMember() {
+      const members = this.space.members.map(address => address.toLowerCase());
+      return (
+        this.$auth.isAuthenticated.value &&
+        this.web3.account &&
+        members.includes(this.web3.account.toLowerCase())
+      );
+    },
+    showScoreWarning() {
+      return (
+        this.space.filters?.minScore > 0 &&
+        !this.hasMinScore &&
+        !this.isMember &&
+        this.userScore !== null
+      );
+    },
+    hasMinScore() {
+      return this.userScore >= this.space.filters.minScore;
     },
     isValid() {
       // const ts = (Date.now() / 1e3).toFixed();
@@ -184,7 +226,12 @@ export default {
         this.form.snapshot &&
         this.form.snapshot > this.blockNumber / 2 &&
         this.choices.length >= 2 &&
-        !this.choices.some(a => a.text === '')
+        !this.choices.some(a => a.text === '') &&
+        (!this.space.filters?.onlyMembers ||
+          (this.space.filters?.onlyMembers && this.isMember)) &&
+        (this.space.filters?.minScore === 0 ||
+          (this.space.filters?.minScore > 0 && this.hasMinScore) ||
+          this.isMember)
       );
     }
   },
@@ -193,12 +240,26 @@ export default {
     this.addChoice(2);
     this.blockNumber = await getBlockNumber(getProvider(this.space.network));
     this.form.snapshot = this.blockNumber;
+    if (this.web3.account && this.space.filters?.minScore > 0 && !this.isMember)
+      this.getUserScore();
     if (this.from) {
       try {
-        const proposal = await ipfsGet(gateway, this.from);
-        const msg = JSON.parse(proposal.msg);
-        this.form = msg.payload;
-        this.choices = msg.payload.choices.map((text, key) => ({ key, text }));
+        const proposal = await proposalQuery(this.from);
+        const { title, body, choices, start, end, snapshot } = proposal;
+        this.form = {
+          name: title,
+          body,
+          choices,
+          start,
+          end,
+          snapshot
+        };
+        const { network, strategies, plugins } = proposal;
+        this.form.metadata = { network, strategies, plugins };
+        this.choices = proposal.choices.map((text, key) => ({
+          key,
+          text
+        }));
       } catch (e) {
         console.log(e);
       }
@@ -223,6 +284,7 @@ export default {
     async handleSubmit() {
       this.loading = true;
       this.form.choices = this.choices.map(choice => choice.text);
+      this.form.metadata.network = this.space.network;
       this.form.metadata.strategies = this.space.strategies;
       try {
         const { ipfsHash } = await this.send({
@@ -241,6 +303,19 @@ export default {
         console.error(e);
         this.loading = false;
       }
+    },
+    async getUserScore() {
+      let scores = await getScores(
+        this.space.key,
+        this.space.strategies,
+        this.space.network,
+        getProvider(this.space.network),
+        [this.web3.account]
+      );
+      scores = scores
+        .map(score => Object.values(score).reduce((a, b) => a + b, 0))
+        .reduce((a, b) => a + b, 0);
+      this.userScore = scores;
     }
   }
 };

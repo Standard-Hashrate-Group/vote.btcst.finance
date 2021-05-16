@@ -1,15 +1,21 @@
 <template>
-  <Block v-if="plugins.length > 0 && ts >= payload.end" :title="'Actions'">
-    <UiButton
-      v-for="plugin in plugins"
-      :key="plugin"
-      @click="execute(plugin)"
-      :loading="loading"
-      :disabled="!$auth.isAuthenticated.value"
-      class="width-full button--submit"
-    >
-      Submit on-chain
-    </UiButton>
+  <Block
+    v-if="plugins.length > 0 && ts >= proposal.end"
+    :title="'Actions'"
+    :loading="!loaded"
+  >
+    <div v-if="loaded">
+      <UiButton
+        v-for="plugin in plugins"
+        :key="plugin"
+        @click="execute(plugin)"
+        :loading="loading"
+        :disabled="!$auth.isAuthenticated.value"
+        class="width-full button--submit"
+      >
+        {{ $t('submitOnchain') }}
+      </UiButton>
+    </div>
   </Block>
 </template>
 
@@ -18,7 +24,7 @@ import { mapActions } from 'vuex';
 import plugins from '@snapshot-labs/snapshot.js/src/plugins';
 
 export default {
-  props: ['id', 'space', 'payload', 'results'],
+  props: ['id', 'space', 'proposal', 'results', 'loaded'],
   data() {
     return {
       loading: false
@@ -54,13 +60,13 @@ export default {
           this.web3.network.key,
           this.$auth.web3,
           this.space.plugins[plugin],
-          this.payload.metadata.plugins[plugin],
+          this.proposal.plugins[plugin],
           this.id,
           this.winningChoice
         );
         const receipt = await tx.wait();
         console.log('Receipt', receipt);
-        this.notify(['green', `You did it, congrats!`]);
+        this.notify(['green', this.$t('notify.youDidIt')]);
       } catch (e) {
         console.error(e);
       }
