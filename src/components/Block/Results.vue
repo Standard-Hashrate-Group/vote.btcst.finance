@@ -1,8 +1,5 @@
 <template>
-  <Block
-    :loading="!loaded"
-    :title="ts >= proposal.end ? $t('results') : $t('currentResults')"
-  >
+  <Block :title="ts >= payload.end ? 'Results' : 'Current results'">
     <div v-for="choice in choices" :key="choice.i">
       <div class="text-white mb-1">
         <span
@@ -15,23 +12,23 @@
           class="mr-1 tooltipped tooltipped-n"
           :aria-label="
             results.totalScores[choice.i]
-              .map((score, index) => `${_n(score)} ${titles[index]}`)
+              .map((score, index) => `${_numeral(score)} ${titles[index]}`)
               .join(' + ')
           "
         >
-          {{ _n(results.totalBalances[choice.i]) }}
+          {{ _numeral(results.totalBalances[choice.i]) }}
           {{ _shorten(space.symbol, 'symbol') }}
         </span>
         <span
           class="float-right"
           v-text="
-            _n(
+            $n(
               !results.totalVotesBalances
                 ? 0
                 : ((100 / results.totalVotesBalances) *
                     results.totalBalances[choice.i]) /
                     1e2,
-              '0.[00]%'
+              'percent'
             )
           "
         />
@@ -43,9 +40,9 @@
         class="mb-3"
       />
     </div>
-    <div v-if="ts >= proposal.end">
+    <div v-if="ts >= payload.end">
       <UiButton @click="downloadReport" class="width-full mt-2">
-        {{ $t('downloadReport') }}
+        Download report
       </UiButton>
     </div>
   </Block>
@@ -56,24 +53,16 @@ import * as jsonexport from 'jsonexport/dist';
 import pkg from '@/../package.json';
 
 export default {
-  props: [
-    'id',
-    'space',
-    'proposal',
-    'results',
-    'votes',
-    'loaded',
-    'strategies'
-  ],
+  props: ['id', 'space', 'payload', 'results', 'votes'],
   computed: {
     ts() {
       return (Date.now() / 1e3).toFixed();
     },
     titles() {
-      return this.strategies.map(strategy => strategy.params.symbol);
+      return this.space.strategies.map(strategy => strategy.params.symbol);
     },
     choices() {
-      return this.proposal.choices
+      return this.payload.choices
         .map((choice, i) => ({ i, choice }))
         .sort(
           (a, b) =>
@@ -83,16 +72,18 @@ export default {
   },
   methods: {
     async downloadReport() {
-      const obj = this.votes
+      const obj = Object.entries(this.votes)
         .map(vote => {
           return {
-            address: vote.voter,
-            choice: vote.choice,
-            balance: vote.balance,
-            timestamp: vote.created,
-            dateUtc: new Date(parseInt(vote.created) * 1e3).toUTCString(),
-            authorIpfsHash: vote.id
-            // relayerIpfsHash: vote[1].relayerIpfsHash
+            address: vote[0],
+            choice: vote[1].msg.payload.choice,
+            balance: vote[1].balance,
+            timestamp: vote[1].msg.timestamp,
+            dateUtc: new Date(
+              parseInt(vote[1].msg.timestamp) * 1e3
+            ).toUTCString(),
+            authorIpfsHash: vote[1].authorIpfsHash,
+            relayerIpfsHash: vote[1].relayerIpfsHash
           };
         })
         .sort((a, b) => a.timestamp - b.timestamp, 0);

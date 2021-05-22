@@ -1,11 +1,8 @@
 <template>
-  <div
-    class="d-flex flex-items-center"
-    :class="{ 'bg-color border-bottom py-3 px-4': modal }"
-  >
+  <div class="d-flex flex-items-center">
     <Icon name="search" size="22" class="mb-1 mr-2 text-gray" />
     <input
-      :value="modelValue"
+      :value="value"
       :placeholder="placeholder"
       @input="handleInput"
       type="text"
@@ -14,32 +11,23 @@
       class="border-0 input flex-auto width-full"
     />
     <a @click="clearInput">
-      <Icon v-if="modelValue" name="close" size="12" class="mb-1" />
+      <Icon v-if="value" name="close" size="12" class="mb-1" />
     </a>
   </div>
 </template>
 
 <script>
 export default {
-  props: ['modelValue', 'placeholder', 'modal'],
-  emits: ['update:modelValue'],
+  props: ['value', 'placeholder'],
   methods: {
     handleInput(e) {
       const input = e.target.value;
-      if (!this.modal) {
-        const { query } = this.$router.currentRoute.value;
-        this.$router.push({
-          query: input ? { ...query, q: input } : { ...query, q: undefined }
-        });
-      }
-      this.$emit('update:modelValue', input);
+      this.$router.push({ query: input ? { q: input } : {} });
+      this.$emit('input', input);
     },
     clearInput() {
-      if (!this.modal) {
-        const { query } = this.$router.currentRoute.value;
-        this.$router.push({ query: { ...query, q: undefined } });
-      }
-      this.$emit('update:modelValue', '');
+      this.$router.push({});
+      this.$emit('input', '');
     }
   }
 };

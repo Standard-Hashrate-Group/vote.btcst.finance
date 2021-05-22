@@ -6,7 +6,7 @@
           <div v-text="space.name" />
           <div class="d-flex flex-items-center flex-auto">
             <h2 class="mr-2">
-              {{ $t('proposals.header') }}
+              Proposals
               <UiCounter
                 :counter="Object.keys(proposalsWithFilter).length"
                 class="ml-1"
@@ -14,8 +14,11 @@
             </h2>
           </div>
         </div>
-        <router-link :to="{ name: 'create', params: { key } }">
-          <UiButton>{{ $t('proposals.new') }}</UiButton>
+        <router-link
+          v-if="$auth.isAuthenticated"
+          :to="{ name: 'create', params: { key } }"
+        >
+          <UiButton>New proposal</UiButton>
         </router-link>
         <router-link
           v-if="isMember && isEns"
@@ -29,9 +32,6 @@
       </div>
     </Container>
     <Container :slim="true">
-      <Block v-if="space.about" class="mb-2">
-        <UiText :text="space.about" />
-      </Block>
       <Block :slim="true">
         <div
           class="px-4 py-3 bg-gray-dark overflow-auto menu-tabs rounded-top-0 rounded-md-top-2"
@@ -39,7 +39,7 @@
           <router-link
             v-for="state in states"
             :key="state"
-            v-text="$t(`proposals.states.${state}`)"
+            v-text="state"
             :to="`/${key}/${state}`"
             :class="tab === state && 'text-white'"
             class="mr-3 text-gray tab"
@@ -61,7 +61,7 @@
           v-if="loaded && Object.keys(proposalsWithFilter).length === 0"
           class="p-4 m-0 border-top d-block"
         >
-          {{ $t('proposals.noProposals') }}
+          There aren't any proposals here yet!
         </p>
       </Block>
     </Container>
@@ -69,8 +69,8 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
 import { filterProposals } from '@/helpers/utils';
-import { getProposals } from '@/helpers/snapshot';
 
 export default {
   data() {
@@ -115,7 +115,7 @@ export default {
     isMember() {
       const members = this.space.members.map(address => address.toLowerCase());
       return (
-        this.$auth.isAuthenticated.value &&
+        this.$auth.isAuthenticated &&
         this.web3.account &&
         members.includes(this.web3.account.toLowerCase())
       );
@@ -124,11 +124,14 @@ export default {
       return this.key.includes('.eth') || this.key.includes('.xyz');
     }
   },
+  methods: {
+    ...mapActions(['getProposals'])
+  },
   async created() {
     this.loading = true;
     this.tab =
       this.$route.params.tab || this.space.filters.defaultTab || this.tab;
-    this.proposals = await getProposals(this.space);
+    this.proposals = await this.getProposals(this.space);
     this.loading = false;
     this.loaded = true;
   }

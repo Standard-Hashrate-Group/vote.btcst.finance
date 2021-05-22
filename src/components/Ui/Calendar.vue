@@ -42,19 +42,13 @@
 
 <script>
 export default {
-  props: ['modelValue'],
-  emits: ['update:modelValue'],
+  props: ['value'],
   data() {
-    const [
-      year = new Date().getFullYear(),
-      month = new Date().getMonth() + 1,
-      day = new Date().getDate()
-    ] = this.modelValue ? this.modelValue.split('-') : [];
     return {
-      input: this.modelValue,
-      month: month - 1,
-      year,
-      day
+      input: '',
+      month: new Date().getMonth(),
+      year: new Date().getFullYear(),
+      day: new Date().getDate()
     };
   },
   computed: {
@@ -95,14 +89,11 @@ export default {
   },
   methods: {
     formatDate(year, month, day) {
-      let data = new Date(year, month, day);
-      const offset = data.getTimezoneOffset();
-      data = new Date(data.getTime() - offset * 60 * 1000);
-      return data.toISOString().split('T')[0];
+      return new Date(year, month, day + 1).toISOString().split('T')[0];
     },
     toggleDay(year, month, day) {
       this.input = this.formatDate(year, month, day);
-      this.$emit('update:modelValue', this.input);
+      this.$emit('input', this.input);
     },
     isSelectable() {
       return true;

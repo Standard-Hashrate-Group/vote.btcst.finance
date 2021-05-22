@@ -1,20 +1,19 @@
 <template>
-  <TextareaAutosize v-model="input" />
+  <textarea-autosize @input="handleInput" v-model="input" />
 </template>
 
 <script>
 export default {
   props: {
-    modelValue: Array
+    value: Array
   },
-  emits: ['update:modelValue'],
   data() {
     return {
       input: ''
     };
   },
   created() {
-    if (this.modelValue) this.input = this.modelValue.join('\n');
+    if (this.value) this.input = this.value.join('\n');
   },
   methods: {
     handleInput() {
@@ -25,12 +24,7 @@ export default {
         .split(' ')
         .map(item => item.trim())
         .filter(item => !!item);
-      this.$emit('update:modelValue', input);
-    }
-  },
-  watch: {
-    input() {
-      this.handleInput();
+      this.$emit('input', input);
     }
   }
 };

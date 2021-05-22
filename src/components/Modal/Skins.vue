@@ -1,44 +1,32 @@
 <template>
   <UiModal :open="open" @close="$emit('close')">
-    <template v-slot:header>
-      <h3>{{ $t('skins') }}</h3>
+    <template slot="header">
+      <h3>Skins</h3>
     </template>
-    <Search
-      v-model="searchInput"
-      :placeholder="$t('searchPlaceholder')"
-      :modal="true"
-    />
     <div class="mt-4 mx-0 mx-md-4">
       <a v-for="skin in skins" :key="skin.key" @click="select(skin.key)">
         <BlockSkin :skin="skin" />
       </a>
-      <NoResults v-if="Object.keys(skins).length < 1" />
     </div>
   </UiModal>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
-import { useSearchFilters } from '@/composables/useSearchFilters';
+import skins from '@/helpers/skins';
+import { filterSkins } from '@/helpers/utils';
 
 export default {
-  props: {
-    open: {
-      type: Boolean,
-      required: true
+  props: ['open'],
+  computed: {
+    skins() {
+      return filterSkins(skins, this.app.spaces, '');
     }
   },
-  setup(_, { emit }) {
-    const searchInput = ref('');
-    const { filteredSkins } = useSearchFilters();
-    const skins = computed(() => filteredSkins(searchInput.value));
-
-    function select(key) {
-      emit('update:modelValue', key);
-      emit('close');
+  methods: {
+    select(key) {
+      this.$emit('input', key);
+      this.$emit('close');
     }
-
-    return { skins, searchInput, select };
   }
 };
 </script>

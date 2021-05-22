@@ -1,6 +1,16 @@
 <template>
   <span class="d-inline-block v-align-middle line-height-0">
-    <UiAvatar :imgsrc="url" :address="spaceAddress" :size="size" />
+    <img
+      v-if="!error"
+      :src="url"
+      :style="{
+        width: `${size || 22}px`,
+        height: `${size || 22}px`
+      }"
+      @error="error = true"
+      class="circle border line-height-0"
+    />
+    <Avatar v-else :address="spaceAddress" :size="size" />
   </span>
 </template>
 
@@ -21,10 +31,7 @@ export default {
           ? 'space'
           : `logo${this.symbolIndex}`
         : 'logo';
-      const url = `https://raw.githubusercontent.com/snapshot-labs/snapshot-spaces/master/spaces/${this.space}/${file}.png`;
-      return `https://worker.snapshot.org/mirror?img=${encodeURIComponent(
-        url
-      )}`;
+      return `https://raw.githubusercontent.com/snapshot-labs/snapshot-spaces/master/spaces/${this.space}/${file}.png`;
     },
     spaceAddress() {
       if (this.space) return formatBytes32String(this.space.slice(0, 24));

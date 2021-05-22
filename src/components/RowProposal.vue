@@ -12,14 +12,17 @@
     </div>
     <div>
       <span v-text="`#${i.slice(0, 7)}`" />
-      {{ $tc('createdBy', [_shorten(proposal.address)]) }}
-      <Badges :address="proposal.address" :members="space.members" />
-      {{
-        $tc(period, [
-          _ms(proposal.msg.payload.start),
-          _ms(proposal.msg.payload.end)
-        ])
-      }}
+      By {{ _shorten(proposal.address) }}
+      <Badges :address="proposal.address" :space="space" class="ml-n1" />
+      <span
+        class="ml-1"
+        v-text="`${_numeral(proposal.score)} ${space.symbol}`"
+      />
+      <Icon v-if="isVerified" name="check" title="Verified" />
+      start
+      <span v-text="$d(proposal.msg.payload.start * 1e3)" />
+      end
+      <span v-text="$d(proposal.msg.payload.end * 1e3)" />
     </div>
   </router-link>
 </template>
@@ -39,13 +42,6 @@ export default {
         this.verified.length > 0 &&
         this.verified.includes(this.proposal.address)
       );
-    },
-    period() {
-      const ts = (Date.now() / 1e3).toFixed();
-      const { start, end } = this.proposal.msg.payload;
-      if (ts > end) return 'endedAgo';
-      if (ts > start) return 'endIn';
-      return 'startIn';
     }
   }
 };

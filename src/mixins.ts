@@ -1,17 +1,23 @@
 import { mapState } from 'vuex';
 import numeral from 'numeral';
-import { format } from 'timeago.js';
+import get from 'lodash/get';
+import prettyMs from 'pretty-ms';
 import networks from '@snapshot-labs/snapshot.js/src/networks.json';
 import domains from '@snapshot-labs/snapshot-spaces/spaces/domains.json';
 import store from '@/store';
+import config from '@/helpers/config';
 import { shorten } from '@/helpers/utils';
-
-const domainName = window.location.hostname;
 
 // @ts-ignore
 const modules = Object.entries(store.state).map(module => module[0]);
+const domainName = window.location.hostname;
 
 export default {
+  data() {
+    return {
+      config
+    };
+  },
   computed: {
     ...mapState(modules),
     domain() {
@@ -19,14 +25,17 @@ export default {
     }
   },
   methods: {
-    _ms(number) {
-      return format(number * 1e3);
+    _get(object, path, fb) {
+      return get(object, path, fb);
     },
-    _n(number, format = '(0.[00]a)') {
-      if (number < 0.00001) return 0;
+    _ms(number) {
+      const diff = number * 1e3 - new Date().getTime();
+      return prettyMs(diff);
+    },
+    _numeral(number, format = '(0.[00]a)') {
       return numeral(number).format(format);
     },
-    _shorten(str: string, key?: any): string {
+    _shorten(str: string, key: any): string {
       if (!str) return str;
       let limit;
       if (typeof key === 'number') limit = key;

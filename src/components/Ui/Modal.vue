@@ -24,22 +24,19 @@
 </template>
 
 <script>
-import { watch, toRefs } from 'vue';
-import { useModal } from '@/composables/useModal';
+import { mapActions } from 'vuex';
 
 export default {
   props: {
-    open: {
-      type: Boolean,
-      required: true
+    open: Boolean
+  },
+  watch: {
+    open(val, prev) {
+      if (val !== prev) this.toggleModal();
     }
   },
-  setup(props) {
-    const { open } = toRefs(props);
-    const { modalOpen } = useModal();
-    watch(open, (val, prev) => {
-      if (val !== prev) modalOpen.value = !modalOpen.value;
-    });
+  methods: {
+    ...mapActions(['toggleModal'])
   }
 };
 </script>
@@ -94,7 +91,7 @@ export default {
     }
 
     .modal-body {
-      max-height: 420px;
+      max-height: 320px;
       flex: auto;
       text-align: initial;
       overflow-y: auto;

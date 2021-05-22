@@ -1,19 +1,25 @@
+import Vue from 'vue';
 import omit from 'lodash/omit';
 import { lsGet, lsSet } from '@/helpers/utils';
 
 const FAVORITES_KEY = 'FAVORITE_SPACES';
 
 const state = {
-  favorites: lsGet(FAVORITES_KEY, {})
+  favorites: {}
 };
 
 const mutations = {
   setFavorites(_state, favorites: Record<string, boolean>) {
-    _state.favorites = favorites;
+    Vue.set(_state, 'favorites', favorites);
   }
 };
 
 const actions = {
+  loadFavoriteSpaces({ commit }) {
+    const favorites = lsGet(FAVORITES_KEY);
+
+    commit('setFavorites', favorites);
+  },
   addFavoriteSpace({ commit, state }, spaceId: string) {
     const favorites = { ...state.favorites, [spaceId]: true };
 

@@ -1,4 +1,5 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import Vue from 'vue';
+import VueRouter, { RouteConfig } from 'vue-router';
 import domains from '@snapshot-labs/snapshot-spaces/spaces/domains.json';
 import aliases from '@snapshot-labs/snapshot-spaces/spaces/aliases.json';
 import Home from '@/views/Home.vue';
@@ -8,10 +9,10 @@ import Create from '@/views/Create.vue';
 import Setup from '@/views/Setup.vue';
 import Settings from '@/views/Settings.vue';
 import Explore from '@/views/Explore.vue';
-import Strategy from '@/views/Strategy.vue';
 import Delegate from '@/views/Delegate.vue';
 import Timeline from '@/views/Timeline.vue';
 
+Vue.use(VueRouter);
 const domainName = window.location.hostname;
 
 const beforeEnter = (to: any, from, next) => {
@@ -22,7 +23,7 @@ const beforeEnter = (to: any, from, next) => {
   next();
 };
 
-const routes: any[] = [
+const routes: Array<RouteConfig> = [
   { path: '/setup', name: 'setup', component: Setup },
   { path: '/:key/settings/:from?', name: 'settings', component: Settings },
   { path: '/networks', name: 'networks', component: Explore },
@@ -31,13 +32,6 @@ const routes: any[] = [
   { path: '/skins', name: 'skins', component: Explore },
   { path: '/delegate', name: 'delegate', component: Delegate },
   { path: '/timeline', name: 'timeline', component: Timeline },
-  { path: '/explore', name: 'explore', component: Timeline },
-
-  {
-    path: '/strategy/:name',
-    name: 'strategy',
-    component: Strategy
-  },
   {
     path: '/:key/proposal/:id',
     name: 'proposal',
@@ -70,11 +64,11 @@ const routes: any[] = [
   { path: '/*', name: 'error-404', beforeEnter: (to, from, next) => next('/') }
 ];
 
-const router = createRouter({
-  history: createWebHashHistory(),
+const router = new VueRouter({
+  mode: 'hash',
   routes,
-  scrollBehavior(): {} {
-    return { top: 0 };
+  scrollBehavior() {
+    return { x: 0, y: 0 };
   }
 });
 

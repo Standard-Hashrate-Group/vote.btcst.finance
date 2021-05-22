@@ -2,15 +2,17 @@
   <Block>
     <div class="d-flex flex-items-center mb-1">
       <a
-        :href="`https://github.com/snapshot-labs/snapshot.js/tree/master/src/plugins/${plugin.key}`"
+        :href="
+          `https://github.com/snapshot-labs/snapshot.js/tree/master/src/plugins/${plugin.key}`
+        "
         target="_blank"
         class="d-flex"
       >
-        <UiAvatar
-          class="mr-2 mb-2"
-          :imgsrc="getLogoUrl(plugin.key)"
-          :seed="plugin.name.charCodeAt()"
-          :size="28"
+        <img
+          class="circle border mr-2 mb-1"
+          :src="getLogoUrl(plugin.key)"
+          width="28"
+          height="28"
         />
         <h3 v-text="plugin.name" />
       </a>
@@ -27,7 +29,7 @@
           {{ plugin.author }}
         </a>
       </div>
-      {{ $tc('inSpaces', [_n(plugin.spaces.length)]) }}
+      In {{ _numeral(plugin.spaces.length) }} space(s)
     </div>
   </Block>
 </template>
@@ -36,8 +38,8 @@
 export default {
   props: ['plugin'],
   methods: {
-    getLogoUrl(key) {
-      return `https://raw.githubusercontent.com/snapshot-labs/snapshot.js/master/src/plugins/${key}/logo.png`;
+    getLogoUrl() {
+      return `https://raw.githubusercontent.com/snapshot-labs/snapshot.js/master/src/plugins/${this.plugin.key}/logo.png`;
     }
   }
 };

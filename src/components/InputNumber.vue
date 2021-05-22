@@ -10,21 +10,20 @@
 <script>
 export default {
   props: {
-    modelValue: Number
+    value: Number
   },
-  emits: ['update:modelValue'],
   data() {
     return {
       input: ''
     };
   },
   created() {
-    if (this.modelValue) this.input = this.modelValue.toString();
+    if (this.value) this.input = this.value.toString();
   },
   methods: {
     handleInput() {
-      if (!this.input) return this.$emit('update:modelValue', undefined);
-      this.$emit('update:modelValue', parseFloat(this.input));
+      if (!this.input) return this.$emit('input', undefined);
+      this.$emit('input', parseFloat(this.input));
     }
   }
 };

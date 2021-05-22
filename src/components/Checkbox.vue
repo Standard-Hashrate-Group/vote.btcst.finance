@@ -1,31 +1,26 @@
 <template>
-  <a @click="handleToggle">
-    <Icon
-      :name="input ? 'toggle-on' : 'toggle_off'"
-      :class="input ? 'text-green' : 'border-color'"
-      size="32"
-    />
-  </a>
+  <input v-model="input" @input="handleInput" />
 </template>
 
 <script>
 export default {
   props: {
-    modelValue: Boolean
+    value: Boolean
   },
-  emits: ['update:modelValue'],
   data() {
     return {
-      input: false
+      input: ''
     };
   },
   created() {
-    if (this.modelValue) this.input = this.modelValue.toString();
+    if (this.value) this.input = this.value.toString();
   },
   methods: {
-    handleToggle() {
-      this.input = !this.input;
-      this.$emit('update:modelValue', this.input);
+    handleInput() {
+      const value = ['1', 'yes', 'ok', 'true'].includes(
+        this.input.trim().toLowerCase()
+      );
+      this.$emit('input', value);
     }
   }
 };

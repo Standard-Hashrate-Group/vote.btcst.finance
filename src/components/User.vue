@@ -1,16 +1,11 @@
 <template>
   <span>
     <a @click="modalOpen = true" class="no-wrap">
-      <UiAvatar
-        :imgsrc="profile?.image"
-        :address="address"
-        size="16"
-        class="mr-1"
-      />
+      <Avatar :profile="profile" :address="address" size="16" class="mr-1" />
       {{ name }}
-      <Badges :address="address" :members="space.members" />
+      <Badges :address="address" :space="space" />
     </a>
-    <teleport to="#modal">
+    <portal to="modal">
       <ModalUser
         :profile="profile"
         :open="modalOpen"
@@ -18,7 +13,7 @@
         :space="space"
         :address="address"
       />
-    </teleport>
+    </portal>
   </span>
 </template>
 
@@ -41,7 +36,7 @@ export default {
       if (this.profile?.name) {
         return this.profile.name;
       } else if (this.profile?.ens) {
-        return this._shorten(this.profile.ens, 20);
+        return this.profile.ens;
       }
       return this._shorten(this.address);
     }

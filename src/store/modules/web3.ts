@@ -1,9 +1,10 @@
+import Vue from 'vue';
 import { Web3Provider } from '@ethersproject/providers';
-import { getInstance } from '@snapshot-labs/lock/plugins/vue3';
+import { getInstance } from '@snapshot-labs/lock/plugins/vue';
 import networks from '@snapshot-labs/snapshot.js/src/networks.json';
 import store from '@/store';
 import { formatUnits } from '@ethersproject/units';
-import { getProfiles } from '@/helpers/profile';
+import { getProfiles } from '@/helpers/3box';
 
 let wsProvider;
 let auth;
@@ -33,12 +34,12 @@ const mutations = {
         unknown: true
       };
     }
-    _state.network = networks[chainId];
+    Vue.set(_state, 'network', networks[chainId]);
     console.debug('HANDLE_CHAIN_CHANGED', chainId);
   },
   WEB3_SET(_state, payload) {
     Object.keys(payload).forEach(key => {
-      _state[key] = payload[key];
+      Vue.set(_state, key, payload[key]);
     });
   }
 };
@@ -48,29 +49,25 @@ const actions = {
     auth = getInstance();
     commit('SET', { authLoading: true });
     await auth.login(connector);
-    if (auth.provider.value) {
-      auth.web3 = new Web3Provider(auth.provider.value);
+    if (auth.provider) {
+      auth.web3 = new Web3Provider(auth.provider);
       await dispatch('loadProvider');
     }
     commit('SET', { authLoading: false });
   },
   logout: async ({ commit }) => {
-    auth = getInstance();
-    auth.logout();
+    Vue.prototype.$auth.logout();
     commit('WEB3_SET', { account: null, profile: null });
   },
   loadProvider: async ({ commit, dispatch }) => {
     try {
-      if (
-        auth.provider.value.removeAllListeners &&
-        !auth.provider.value.isTorus
-      )
-        auth.provider.value.removeAllListeners();
-      if (auth.provider.value.on) {
-        auth.provider.value.on('chainChanged', async chainId => {
+      if (auth.provider.removeAllListeners && !auth.provider.isTorus)
+        auth.provider.removeAllListeners();
+      if (auth.provider.on) {
+        auth.provider.on('chainChanged', async chainId => {
           commit('HANDLE_CHAIN_CHANGED', parseInt(formatUnits(chainId, 0)));
         });
-        auth.provider.value.on('accountsChanged', async accounts => {
+        auth.provider.on('accountsChanged', async accounts => {
           if (accounts.length !== 0) {
             commit('WEB3_SET', { account: accounts[0] });
             await dispatch('loadProvider');
@@ -78,7 +75,7 @@ const actions = {
         });
         // auth.provider.on('disconnect', async () => {});
       }
-      console.log('Provider', auth.provider.value);
+      console.log('Provider', auth.provider);
       let network, accounts;
       try {
         [network, accounts] = await Promise.all([

@@ -1,13 +1,8 @@
 <template>
   <UiModal :open="open" @close="$emit('close')">
-    <template v-slot:header>
-      <h3>{{ $t('networks') }}</h3>
+    <template slot="header">
+      <h3>Networks</h3>
     </template>
-    <Search
-      v-model="searchInput"
-      :placeholder="$t('searchPlaceholder')"
-      :modal="true"
-    />
     <div class="mt-4 mx-0 mx-md-4">
       <a
         v-for="network in networks"
@@ -16,33 +11,26 @@
       >
         <BlockNetwork :network="network" />
       </a>
-      <NoResults v-if="Object.keys(networks).length < 1" />
     </div>
   </UiModal>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
-import { useSearchFilters } from '@/composables/useSearchFilters';
+import networks from '@snapshot-labs/snapshot.js/src/networks.json';
+import { filterNetworks } from '@/helpers/utils';
 
 export default {
-  props: {
-    open: {
-      type: Boolean,
-      required: true
+  props: ['open'],
+  computed: {
+    networks() {
+      return filterNetworks(networks, this.app.spaces, '');
     }
   },
-  setup(_, { emit }) {
-    const searchInput = ref('');
-    const { filteredNetworks } = useSearchFilters();
-    const networks = computed(() => filteredNetworks(searchInput.value));
-
-    function select(key) {
-      emit('update:modelValue', key);
-      emit('close');
+  methods: {
+    select(key) {
+      this.$emit('input', key);
+      this.$emit('close');
     }
-
-    return { networks, searchInput, select };
   }
 };
 </script>

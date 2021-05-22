@@ -2,7 +2,7 @@
   <div>
     <div v-if="isFixed" :style="`height: ${offsetHeight}px;`" />
     <div
-      style="z-index: 20"
+      style="z-index: 20;"
       id="sticky"
       :class="{ 'position-fixed width-full top-0': isFixed }"
     >
@@ -25,12 +25,10 @@ export default {
     if (this.isSticky === false) return;
     window.addEventListener('scroll', this.onScroll);
     const el = document.getElementById('sticky');
-    if (el) {
-      this.offsetTop = el.offsetTop;
-      this.offsetHeight = el.offsetHeight;
-    }
+    this.offsetTop = el.offsetTop;
+    this.offsetHeight = el.offsetHeight;
   },
-  beforeUnmount() {
+  beforeDestroy() {
     if (this.isSticky === false) return;
     window.removeEventListener('scroll', this.onScroll);
   },

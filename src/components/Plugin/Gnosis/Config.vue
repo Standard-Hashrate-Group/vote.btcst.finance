@@ -1,27 +1,16 @@
 <template>
   <form @submit.prevent="handleSubmit">
     <div class="mb-2 text-center">
-      <h4 class="mb-3">{{ $t('marketDetails') }}</h4>
+      <h4 class="mb-3">Market details</h4>
       <UiButton @click="addAction" v-if="!input" class="width-full mb-2">
-        {{ $t('addMarket') }}
+        Add market
       </UiButton>
-      <div v-else-if="!preview">
-        <UiButton class="width-full mb-2">
-          <select
-            v-model="input.network"
-            class="input width-full text-center"
-            :placeholder="$t('selectNetwork')"
-            required
-          >
-            <option value="1" selected>Mainnet</option>
-            <option value="100">xDai</option>
-          </select>
-        </UiButton>
+      <div v-else-if="!this.preview">
         <UiButton class="width-full mb-2">
           <input
             v-model="input.conditionId"
             class="input width-full text-center"
-            :placeholder="$t('conditionId')"
+            placeholder="Condition ID"
             required
           />
         </UiButton>
@@ -29,7 +18,7 @@
           <input
             v-model="input.baseTokenAddress"
             class="input width-full text-center"
-            :placeholder="$t('basetokenAddress')"
+            placeholder="Base token address"
             required
           />
         </UiButton>
@@ -37,19 +26,20 @@
           <input
             v-model="input.quoteCurrencyAddress"
             class="input width-full text-center"
-            :placeholder="$t('quoteAddress')"
+            placeholder="Quote currency address"
             required
           />
         </UiButton>
         <UiButton v-if="input" @click="removeAction" class="width-full mb-2">
-          {{ $t('removeMarket') }}
+          Remove market
         </UiButton>
       </div>
     </div>
-    <div v-if="preview">
-      <PluginGnosisCustomBlock
+    <div v-if="this.preview">
+      <PluginGnosisBlock
         :proposalConfig="input"
-        :choices="getChoices()"
+        :choices="this.getChoices()"
+        :network="this.network"
       />
     </div>
     <UiButton
@@ -58,25 +48,24 @@
       @click="preview = true"
       class="width-full mb-2"
     >
-      {{ $t('create.preview') }}
+      Preview
     </UiButton>
     <UiButton v-if="preview" @click="preview = false" class="width-full mb-2">
-      {{ $t('back') }}
+      Back
     </UiButton>
     <UiButton
       :disabled="!isValid"
       @click="handleSubmit"
       class="button--submit width-full"
     >
-      {{ $t('confirm') }}
+      Confirm
     </UiButton>
   </form>
 </template>
 
 <script>
 export default {
-  props: ['modelValue', 'proposal', 'network'],
-  emits: ['update:modelValue', 'close'],
+  props: ['value', 'proposal', 'network'],
   data() {
     return {
       input: false,
@@ -94,7 +83,7 @@ export default {
     }
   },
   mounted() {
-    if (this.modelValue) return (this.input = this.modelValue);
+    if (this.value) return (this.input = this.value);
   },
   methods: {
     getLogoUrl() {
@@ -103,7 +92,6 @@ export default {
     addAction() {
       if (!this.input) this.input = {};
       this.input = {
-        network: '1',
         conditionId: '',
         baseTokenAddress: '',
         quoteCurrencyAddress: ''
@@ -113,7 +101,7 @@ export default {
       this.input = false;
     },
     handleSubmit() {
-      this.$emit('update:modelValue', this.input);
+      this.$emit('input', this.input);
       this.$emit('close');
     },
     getChoices() {
